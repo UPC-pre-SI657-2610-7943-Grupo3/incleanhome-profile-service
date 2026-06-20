@@ -1,6 +1,6 @@
 namespace InCleanHome.ProfileService.Interfaces.REST.Resources;
 
-// Creation (called by IAM Service after Auth0 complete-registration)
+// Creation
 public record CreateClientProfileResource(int UserId, string Name, string? Phone);
 
 public record CreateWorkerProfileResource(

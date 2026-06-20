@@ -1,6 +1,5 @@
 namespace InCleanHome.ProfileService.Infrastructure.Messaging.Events;
 
-// ─── Published by Profile Service ───────────────────────────────────────
 
 public record WorkerProfileUpdatedEvent
 {
@@ -18,7 +17,6 @@ public record ClientProfileUpdatedEvent
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
-// ─── Consumed by Profile Service (duplicated from publishers) ────────────
 
 /// <summary>Published by Reviews Service when a customer rates a service.</summary>
 public record ReviewSubmittedEvent

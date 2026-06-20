@@ -93,9 +93,6 @@ try
     builder.Services.AddScoped<IWorkerProfileCommandService, WorkerProfileCommandService>();
     builder.Services.AddScoped<IWorkerProfileQueryService, WorkerProfileQueryService>();
 
-    // ──────────────────────────────────────────────────────────────────
-    //  MassTransit + RabbitMQ
-    // ──────────────────────────────────────────────────────────────────
     builder.Services.AddMassTransit(x =>
     {
         // Consumers: Profile reacts to events from IAM and Reviews.
