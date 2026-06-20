@@ -7,10 +7,7 @@ public class BaseRepository<TEntity> : IBaseRepository<TEntity> where TEntity : 
 {
     protected readonly ProfileDbContext Context;
 
-    protected BaseRepository(ProfileDbContext context)
-    {
-        Context = context;
-    }
+    protected BaseRepository(ProfileDbContext context) { Context = context; }
 
     public async Task AddAsync(TEntity entity)         => await Context.Set<TEntity>().AddAsync(entity);
     public async Task<TEntity?> FindByIdAsync(int id)  => await Context.Set<TEntity>().FindAsync(id);

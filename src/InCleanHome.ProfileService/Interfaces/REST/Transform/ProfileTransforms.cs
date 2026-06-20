@@ -11,27 +11,14 @@ public static class ClientResourceFromEntityAssembler
 
 public static class WorkerResourceFromEntityAssembler
 {
-    /// <summary>
-    /// Maps a <see cref="WorkerProfile"/> to its public resource. We expose
-    /// <c>UserId</c> as <c>Id</c> for compatibility with the frontend, which
-    /// identifies workers by user id for navigation (/worker/{userId}) and
-    /// messaging routes. <c>ProfileId</c> exposes the internal PK for callers
-    /// that need it.
-    /// </summary>
     public static WorkerResource ToResourceFromEntity(WorkerProfile w)
         => new(
-            w.UserId,
-            w.Id,
-            w.Name,
-            w.Phone,
-            w.Age,
-            w.Gender,
-            w.ServiceTypes,
-            w.Zones,
-            w.HourlyRate,
-            w.ExperienceYears,
-            w.Bio,
-            w.AverageRating,
-            w.TotalServices,
+            w.UserId,            // Id = UserId for frontend route compatibility (/worker/{userId})
+            w.Id,                // ProfileId = internal PK
+            w.Name, w.Phone, w.Age, w.Gender,
+            w.ServiceTypes, w.Zones,
+            w.HourlyRate, w.HourlyRateSunday,
+            w.ExperienceYears, w.Bio,
+            w.AverageRating, w.TotalServices,
             w.PhotoUrl);
 }

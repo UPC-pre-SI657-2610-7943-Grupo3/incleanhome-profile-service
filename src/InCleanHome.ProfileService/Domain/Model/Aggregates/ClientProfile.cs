@@ -3,17 +3,12 @@ using EntityFrameworkCore.CreatedUpdatedDate.Contracts;
 
 namespace InCleanHome.ProfileService.Domain.Model.Aggregates;
 
-/// <summary>
-///     Client profile aggregate root — household demanding domestic services.
-/// </summary>
 public class ClientProfile : IEntityWithCreatedUpdatedDate
 {
     public int Id { get; private set; }
     public int UserId { get; private set; }
     public string Name { get; private set; } = string.Empty;
     public string Phone { get; private set; } = string.Empty;
-
-    // Profile photo stored as a data URL / base64 string.
     public string? PhotoUrl { get; private set; }
 
     [Column("CreatedAt")] public DateTimeOffset? CreatedDate { get; set; }
@@ -37,9 +32,5 @@ public class ClientProfile : IEntityWithCreatedUpdatedDate
         return this;
     }
 
-    public ClientProfile SetPhoto(string? photoUrl)
-    {
-        PhotoUrl = photoUrl;
-        return this;
-    }
+    public ClientProfile SetPhoto(string? photoUrl) { PhotoUrl = photoUrl; return this; }
 }

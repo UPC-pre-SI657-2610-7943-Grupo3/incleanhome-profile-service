@@ -9,7 +9,4 @@ public interface IBaseRepository<TEntity>
     Task<IEnumerable<TEntity>> ListAsync();
 }
 
-public interface IUnitOfWork
-{
-    Task CompleteAsync();
-}
+public interface IUnitOfWork { Task CompleteAsync(); }

@@ -1,5 +1,6 @@
 namespace InCleanHome.ProfileService.Interfaces.REST.Resources;
 
+// Creation (called by IAM Service after Auth0 complete-registration)
 public record CreateClientProfileResource(int UserId, string Name, string? Phone);
 
 public record CreateWorkerProfileResource(
@@ -11,11 +12,11 @@ public record CreateWorkerProfileResource(
     List<string> ServiceTypes,
     List<string> Zones,
     decimal HourlyRate,
+    decimal HourlyRateSunday,
     int ExperienceYears,
     string? Bio);
 
-
-
+// Updates
 public record UpdateClientProfileResource(string Name, string? Phone);
 
 public record UpdateWorkerProfileResource(
@@ -24,14 +25,14 @@ public record UpdateWorkerProfileResource(
     int Age,
     int ExperienceYears,
     decimal HourlyRate,
+    decimal HourlyRateSunday,
     List<string> ServiceTypes,
     List<string> Zones,
     string? Bio);
 
 public record UpdatePhotoResource(string? PhotoUrl);
 
-
-
+// Outputs
 public record ClientProfileResource(
     int Id,
     int UserId,
@@ -40,8 +41,8 @@ public record ClientProfileResource(
     string? PhotoUrl);
 
 public record WorkerResource(
-    int Id,                 // userId so the frontend can navigate /worker/{id}
-    int ProfileId,          // internal profile primary key
+    int Id,
+    int ProfileId,
     string Name,
     string? Phone,
     int Age,
@@ -49,6 +50,7 @@ public record WorkerResource(
     List<string> ServiceTypes,
     List<string> Zones,
     decimal HourlyRate,
+    decimal HourlyRateSunday,
     int ExperienceYears,
     string Bio,
     decimal AverageRating,

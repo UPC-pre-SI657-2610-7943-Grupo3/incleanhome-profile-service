@@ -9,8 +9,8 @@ namespace InCleanHome.ProfileService.Domain.Model.Aggregates;
 /// <remarks>
 ///     <c>ServiceTypes</c> and <c>Zones</c> are stored as PostgreSQL <c>text[]</c> columns
 ///     (Npgsql maps <c>List&lt;string&gt;</c> to it natively). Aggregate stats
-///     (<c>AverageRating</c>, <c>TotalServices</c>) are denormalized for fast listing and
-///     are updated by the Reviews/Booking microservices through events or direct API calls.
+///     (<c>AverageRating</c>, <c>TotalServices</c>) are denormalized for fast
+///     search/listing and are updated through events from Reviews Service.
 /// </remarks>
 public class WorkerProfile : IEntityWithCreatedUpdatedDate
 {
@@ -26,6 +26,14 @@ public class WorkerProfile : IEntityWithCreatedUpdatedDate
     public List<string> Zones { get; private set; } = new();
 
     public decimal HourlyRate { get; private set; }
+
+    /// <summary>
+    /// Sunday rate. Each worker sets it when registering; can be greater, equal,
+    /// or lower than the normal rate. If a booking falls on Sunday, total uses
+    /// this rate instead of <see cref="HourlyRate"/>.
+    /// </summary>
+    public decimal HourlyRateSunday { get; private set; }
+
     public int ExperienceYears { get; private set; }
     public string Bio { get; private set; } = string.Empty;
 
@@ -41,38 +49,42 @@ public class WorkerProfile : IEntityWithCreatedUpdatedDate
 
     public WorkerProfile(int userId, string name, string phone, int age, string gender,
         List<string> serviceTypes, List<string> zones,
-        decimal hourlyRate, int experienceYears, string bio)
+        decimal hourlyRate, decimal hourlyRateSunday,
+        int experienceYears, string bio)
     {
-        UserId          = userId;
-        Name            = name;
-        Phone           = phone ?? string.Empty;
-        Age             = age;
-        Gender          = gender;
-        ServiceTypes    = serviceTypes ?? new();
-        Zones           = zones ?? new();
-        HourlyRate      = hourlyRate;
-        ExperienceYears = experienceYears;
-        Bio             = bio ?? string.Empty;
-        AverageRating   = 0m;
-        TotalServices   = 0;
+        UserId           = userId;
+        Name             = name;
+        Phone            = phone ?? string.Empty;
+        Age              = age;
+        Gender           = gender;
+        ServiceTypes     = serviceTypes ?? new();
+        Zones            = zones ?? new();
+        HourlyRate       = hourlyRate;
+        HourlyRateSunday = hourlyRateSunday > 0 ? hourlyRateSunday : hourlyRate;
+        ExperienceYears  = experienceYears;
+        Bio              = bio ?? string.Empty;
+        AverageRating    = 0m;
+        TotalServices    = 0;
     }
 
     public WorkerProfile Update(string name, string phone, int age,
         List<string> serviceTypes, List<string> zones,
-        decimal hourlyRate, int experienceYears, string bio)
+        decimal hourlyRate, decimal hourlyRateSunday,
+        int experienceYears, string bio)
     {
-        Name            = name;
-        Phone           = phone ?? string.Empty;
-        Age             = age;
-        ServiceTypes    = serviceTypes ?? new();
-        Zones           = zones ?? new();
-        HourlyRate      = hourlyRate;
-        ExperienceYears = experienceYears;
-        Bio             = bio ?? string.Empty;
+        Name             = name;
+        Phone            = phone ?? string.Empty;
+        Age              = age;
+        ServiceTypes     = serviceTypes ?? new();
+        Zones            = zones ?? new();
+        HourlyRate       = hourlyRate;
+        HourlyRateSunday = hourlyRateSunday > 0 ? hourlyRateSunday : hourlyRate;
+        ExperienceYears  = experienceYears;
+        Bio              = bio ?? string.Empty;
         return this;
     }
 
-    /// <summary>Recomputes the running average rating after a new review.</summary>
+    /// <summary>Recomputes running average rating after a new review.</summary>
     public WorkerProfile RegisterCompletedService(int newRating)
     {
         var totalRatings = AverageRating * TotalServices;
@@ -81,9 +93,5 @@ public class WorkerProfile : IEntityWithCreatedUpdatedDate
         return this;
     }
 
-    public WorkerProfile SetPhoto(string? photoUrl)
-    {
-        PhotoUrl = photoUrl;
-        return this;
-    }
+    public WorkerProfile SetPhoto(string? photoUrl) { PhotoUrl = photoUrl; return this; }
 }

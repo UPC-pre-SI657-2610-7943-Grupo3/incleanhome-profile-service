@@ -5,17 +5,13 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace InCleanHome.ProfileService.Infrastructure.Pipeline;
 
-/// <summary>
-/// Marks an endpoint as accessible without a valid JWT.
-/// </summary>
 [AttributeUsage(AttributeTargets.Method)]
 public class AllowAnonymousAttribute : Attribute { }
 
 /// <summary>
 /// Lightweight authenticated-user info extracted from the JWT.
 /// Profile Service does not own the User aggregate (IAM does), so we only
-/// extract the user id and role from the token's claims. If we need more
-/// data we would call IAM Service via HTTP.
+/// extract the user id and role from the token's claims.
 /// </summary>
 public record AuthenticatedUser(int UserId, string Role)
 {
@@ -24,15 +20,11 @@ public record AuthenticatedUser(int UserId, string Role)
     public bool IsAdmin()  => string.Equals(Role, "admin",  StringComparison.OrdinalIgnoreCase);
 }
 
-/// <summary>
-/// Validates the JWT signature/issuer/audience/expiration and extracts the user id and role.
-/// On success, stores an <see cref="AuthenticatedUser"/> in <c>HttpContext.Items["User"]</c>.
-/// Endpoints decorated with <see cref="AllowAnonymousAttribute"/> bypass this check.
-/// </summary>
 public class JwtAuthMiddleware(RequestDelegate next, IConfiguration configuration)
 {
     public async Task InvokeAsync(HttpContext context)
     {
+        // Skip JWT for well-known public paths (health checks, swagger, root).
         var path = context.Request.Path.Value ?? string.Empty;
         if (path == "/" ||
             path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
@@ -41,7 +33,7 @@ public class JwtAuthMiddleware(RequestDelegate next, IConfiguration configuratio
             await next(context);
             return;
         }
-        
+
         var endpoint = context.Request.HttpContext.GetEndpoint();
         var allowAnonymous = endpoint?.Metadata
             .Any(m => m.GetType() == typeof(AllowAnonymousAttribute)) ?? false;
@@ -67,7 +59,7 @@ public class JwtAuthMiddleware(RequestDelegate next, IConfiguration configuratio
         if (string.IsNullOrWhiteSpace(jwtKey))
         {
             context.Response.StatusCode = 500;
-            await context.Response.WriteAsJsonAsync(new { error = "JWT_SIGNING_KEY is not configured on the server" });
+            await context.Response.WriteAsJsonAsync(new { error = "JWT_SIGNING_KEY is not configured" });
             return;
         }
 
@@ -102,7 +94,7 @@ public class JwtAuthMiddleware(RequestDelegate next, IConfiguration configuratio
             if (!int.TryParse(sidStr, out var userId))
             {
                 context.Response.StatusCode = 401;
-                await context.Response.WriteAsJsonAsync(new { error = "Malformed token (no user id)" });
+                await context.Response.WriteAsJsonAsync(new { error = "Malformed token" });
                 return;
             }
 

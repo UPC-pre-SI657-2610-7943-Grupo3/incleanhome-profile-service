@@ -20,7 +20,6 @@ public class ProfileDbContext(DbContextOptions<ProfileDbContext> options) : DbCo
     {
         base.OnModelCreating(builder);
 
-        // ClientProfile 
         builder.Entity<ClientProfile>().HasKey(c => c.Id);
         builder.Entity<ClientProfile>().Property(c => c.Id).IsRequired().ValueGeneratedOnAdd();
         builder.Entity<ClientProfile>().Property(c => c.UserId).IsRequired();
@@ -29,7 +28,6 @@ public class ProfileDbContext(DbContextOptions<ProfileDbContext> options) : DbCo
         builder.Entity<ClientProfile>().Property(c => c.PhotoUrl);
         builder.Entity<ClientProfile>().HasIndex(c => c.UserId).IsUnique();
 
-        // WorkerProfile
         builder.Entity<WorkerProfile>().HasKey(w => w.Id);
         builder.Entity<WorkerProfile>().Property(w => w.Id).IsRequired().ValueGeneratedOnAdd();
         builder.Entity<WorkerProfile>().Property(w => w.UserId).IsRequired();
@@ -38,6 +36,7 @@ public class ProfileDbContext(DbContextOptions<ProfileDbContext> options) : DbCo
         builder.Entity<WorkerProfile>().Property(w => w.Age);
         builder.Entity<WorkerProfile>().Property(w => w.Gender).HasMaxLength(20);
         builder.Entity<WorkerProfile>().Property(w => w.HourlyRate).HasPrecision(10, 2);
+        builder.Entity<WorkerProfile>().Property(w => w.HourlyRateSunday).HasPrecision(10, 2);
         builder.Entity<WorkerProfile>().Property(w => w.ExperienceYears);
         builder.Entity<WorkerProfile>().Property(w => w.Bio).HasMaxLength(1000);
         builder.Entity<WorkerProfile>().Property(w => w.AverageRating).HasPrecision(3, 2);
@@ -45,7 +44,6 @@ public class ProfileDbContext(DbContextOptions<ProfileDbContext> options) : DbCo
         builder.Entity<WorkerProfile>().Property(w => w.PhotoUrl);
         builder.Entity<WorkerProfile>().HasIndex(w => w.UserId).IsUnique();
 
-        // Npgsql native mapping for List<string> -> text[]
         builder.Entity<WorkerProfile>().Property(w => w.ServiceTypes).HasColumnType("text[]");
         builder.Entity<WorkerProfile>().Property(w => w.Zones).HasColumnType("text[]");
 

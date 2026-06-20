@@ -1,119 +1,73 @@
 # InCleanHome Profile Service
-> User profile management microservice for InCleanHome.
 
-This service owns the `ClientProfile` and `WorkerProfile` aggregates. It is responsible for:
+> User profile management microservice (ClientProfile + WorkerProfile).
 
-- Creating client and worker profiles after the user is created in IAM Service.
-- Updating profile data (name, phone, photo, worker-specific fields).
-- Listing and filtering workers by service type, zone, gender, rating, etc.
-- Updating worker statistics (`AverageRating`, `TotalServices`) when a service completes.
+Owns the `ClientProfile` and `WorkerProfile` aggregates. Handles:
+- Profile creation called by IAM after Auth0 registration.
+- Profile read/update (name, phone, photo, worker fields).
+- Worker listing/search with filters (service type, zone, etc.).
+- Worker stats updates triggered by `ReviewSubmitted` events.
+- Orphan profile cleanup triggered by `UserDeleted` events.
 
-This service is part of the [InCleanHome platform](https://github.com/UPC-pre-SI657-2610-7943-Grupo3/incleanhome-platform). 
+## Endpoints
 
-## Architecture in one paragraph
-Standard DDD layering: Domain (aggregates, value objects, commands, queries,
-repository contracts) → Application (command/query services) → Infrastructure
-(EF Core persistence, JWT validation middleware) → Interfaces (REST controllers
-+ DTOs). The service reads its non-sensitive config from **Consul KV** at startup
-and falls back to `appsettings.json`. The database connection string and JWT
-signing key come from environment variables.
-
-Unlike the IAM Service, this service does **not** own the User entity — it
-trusts the JWT issued by IAM (validates signature + extracts `userId` and `role`
-from claims). It does **not** call IAM for every request; that would be too chatty.
-
-## Folder layout (Clean Architecture)
-```
-src/InCleanHome.ProfileService/
-├── Program.cs                              # composition root
-├── appsettings.json                        # fallback config
-│
-├── Configuration/                          # Consul config loader (same as IAM)
-├── Discovery/                              # Consul service registration (same as IAM)
-│
-├── Domain/
-│   ├── Model/
-│   │   ├── Aggregates/    (ClientProfile, WorkerProfile)
-│   │   ├── ValueObjects/  (Gender)
-│   │   ├── Commands/      (CreateClient, CreateWorker, Update*, RegisterCompletedService, ...)
-│   │   └── Queries/       (GetByUserId, SearchWorkers, ...)
-│   ├── Repositories/      (IClientProfileRepository, IWorkerProfileRepository, IUnitOfWork)
-│   └── Services/          (Command + Query service interfaces)
-│
-├── Application/
-│   └── Internal/
-│       ├── CommandServices/  (ClientProfileCommandService, WorkerProfileCommandService)
-│       └── QueryServices/    (ClientProfileQueryService, WorkerProfileQueryService)
-│
-├── Infrastructure/
-│   ├── Persistence/
-│   │   ├── ProfileDbContext.cs            # EF Core context (snake_case naming)
-│   │   ├── BaseRepository.cs
-│   │   ├── Repositories/                  # ClientProfileRepository, WorkerProfileRepository
-│   │   └── Extensions/                    # ModelBuilder + StringExtensions
-│   └── Pipeline/
-│       └── JwtAuthMiddleware.cs           # validates JWT and extracts claims
-│
-└── Interfaces/
-    └── REST/
-        ├── Controllers/ProfilesController.cs
-        ├── Resources/                     # DTOs (Create, Update, Output)
-        └── Transform/                     # entity ↔ resource assemblers
-```
-
-
-The Profile Service runs on port `5002` internally. Reachable from outside through
-the API Gateway at `http://localhost:8080`.
-
-## API endpoints
-All paths shown as they appear through the API Gateway:
 | Method | Path | Purpose | Auth |
 |---|---|---|---|
-| POST  | `/api/v1/profiles/clients` | Create a client profile | Bearer JWT |
-| POST  | `/api/v1/profiles/workers` | Create a worker profile | Bearer JWT |
-| GET   | `/api/v1/profiles/me` | Get current user's profile (client OR worker) | Bearer JWT |
+| POST | `/api/v1/profiles/clients` | Create client profile | Bearer JWT |
+| POST | `/api/v1/profiles/workers` | Create worker profile | Bearer JWT |
+| GET | `/api/v1/profiles/me` | Get current profile (client OR worker) | Bearer JWT |
 | PATCH | `/api/v1/profiles/me/client` | Update current client profile | Bearer JWT (client) |
 | PATCH | `/api/v1/profiles/me/worker` | Update current worker profile | Bearer JWT (worker) |
-| POST  | `/api/v1/profiles/me/photo` | Set current user's profile photo | Bearer JWT |
-| GET   | `/api/v1/profiles/clients/{userId}` | Get a client's public profile | Bearer JWT |
-| GET   | `/api/v1/profiles/workers/{userId}` | Get a worker's public profile | Bearer JWT |
-| GET   | `/api/v1/profiles/workers` | List/search workers (filters in query string) | Bearer JWT |
-| POST  | `/api/v1/profiles/workers/{userId}/completed-service` | Increment worker stats | Bearer JWT (admin) |
+| POST | `/api/v1/profiles/me/photo` | Set current user's profile photo | Bearer JWT |
+| GET | `/api/v1/profiles/clients/{userId}` | Get a client's public profile | Bearer JWT |
+| GET | `/api/v1/profiles/workers/{userId}` | Get a worker's public profile | Bearer JWT |
+| GET | `/api/v1/profiles/workers` | List/search workers | Bearer JWT |
 
 ### Search query parameters
-`GET /api/v1/profiles/workers?serviceType=cleaning&zone=miraflores&minRating=4.0`
+
+`GET /api/v1/profiles/workers?serviceTypes=limpieza,cuidado_ninos&zone=miraflores&minRating=4`
 
 Supported filters:
-- `serviceType` — string (matches if worker's `ServiceTypes` contains this value)
-- `zone` — string (matches if worker's `Zones` contains this value)
-- `gender` — `female | male | other`
-- `minAge`, `maxAge` — integers
-- `maxHourlyRate` — decimal
-- `minRating` — decimal (0–5)
+- `serviceType` (singular) — match if worker offers this one.
+- `serviceTypes` (plural, CSV) — AND: worker must offer **all** listed.
+- `zone`, `gender`, `minAge`, `maxAge`, `maxHourlyRate`, `minRating`.
 
-Results are ordered by `AverageRating` descending.
+## Events
 
-## Database
-This service owns the `profile_db` PostgreSQL database (running on port `5433`
-in docker-compose to avoid clashing with `iam-db` on 5432).
+### Publishes (to `incleanhome.profile.events`)
+- `WorkerProfileUpdatedEvent` — when worker profile or stats change.
+- `ClientProfileUpdatedEvent` — when client profile changes.
 
-Tables (snake_case):
-- `client_profiles`
-- `worker_profiles` (with PostgreSQL `text[]` columns for `service_types` and `zones`)
+### Consumes
+- `ReviewSubmittedEvent` (from Reviews Service) → updates `AverageRating` + `TotalServices`.
+- `UserDeletedEvent` (from IAM Service) → removes orphan profile.
 
-Schema is created via `Database.EnsureCreatedAsync()` on startup (same pattern as IAM).
+## Environment variables
 
-## How this service relates to IAM
-The Profile Service does not own the `User` entity, but every `ClientProfile`
-and `WorkerProfile` has a `UserId` foreign-reference to a user that lives in
-IAM's database. There is **no enforced foreign key constraint** between the two
-databases (microservices own their schemas independently). Consistency is
-maintained at the application layer: the frontend creates a user in IAM, gets
-the user id, and then creates the matching profile here passing that id.
+| Variable | Required | Purpose |
+|---|---|---|
+| `JWT_SIGNING_KEY` | YES | Same key the gateway and IAM use |
+| `PROFILE_DB_CONNECTION` | YES | PostgreSQL connection string |
+| `RABBITMQ_URL` | no | Format `amqps://user:pass@host/vhost`. Placeholder = no broker |
+| `CONSUL_HTTP_ADDR` | no | Default `http://consul:8500` |
 
-If a user is deleted in IAM, this service won't automatically know. A future
-iteration with RabbitMQ will subscribe to `UserDeleted` events to clean up
-orphan profiles.
+## Run
 
-## License
-For academic use - InCleanHome team.
+This service runs as part of the platform:
+```bash
+cd ../incleanhome-platform
+docker compose up --build -d profile-service
+```
+
+Direct access: http://localhost:5002
+Swagger UI (with "Authorize" button): http://localhost:5002/swagger
+
+## Architecture notes
+
+- **Database-per-service**: owns `profile_db`. No other service reads from it directly.
+- **JWT validation**: extracts `userId` and `role` from claims. Does NOT lookup IAM
+  on every request to avoid being chatty.
+- **HTTP from IAM**: when IAM needs to resolve name/phone for `/auth/me` or
+  `/auth0/login`, it calls this service over HTTP. This is intentional — keeps
+  the frontend contract identical to the monolith.
+- **Eventing**: MassTransit + RabbitMQ. Soft-fail if broker is unavailable.

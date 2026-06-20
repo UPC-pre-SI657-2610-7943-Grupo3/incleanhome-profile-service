@@ -22,8 +22,20 @@ public class WorkerProfileRepository(ProfileDbContext context)
     {
         var query = Context.Set<WorkerProfile>().AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(f.ServiceType))
+        // ServiceTypes (plural) takes precedence and uses AND logic: every required
+        // service must be present in the worker's ServiceTypes column.
+        if (f.ServiceTypes is not null && f.ServiceTypes.Count > 0)
+        {
+            foreach (var st in f.ServiceTypes)
+            {
+                var required = st;
+                query = query.Where(w => w.ServiceTypes.Contains(required));
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(f.ServiceType))
+        {
             query = query.Where(w => w.ServiceTypes.Contains(f.ServiceType));
+        }
 
         if (!string.IsNullOrWhiteSpace(f.Zone))
             query = query.Where(w => w.Zones.Contains(f.Zone));
