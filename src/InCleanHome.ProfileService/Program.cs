@@ -9,6 +9,7 @@ using InCleanHome.ProfileService.Infrastructure.Persistence;
 using InCleanHome.ProfileService.Infrastructure.Persistence.Repositories;
 using InCleanHome.ProfileService.Infrastructure.Pipeline;
 using MassTransit;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks; 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
@@ -92,7 +93,8 @@ try
     builder.Services.AddScoped<IClientProfileQueryService, ClientProfileQueryService>();
     builder.Services.AddScoped<IWorkerProfileCommandService, WorkerProfileCommandService>();
     builder.Services.AddScoped<IWorkerProfileQueryService, WorkerProfileQueryService>();
-
+    
+    //  MassTransit + RabbitMQ
     builder.Services.AddMassTransit(x =>
     {
         // Consumers: Profile reacts to events from IAM and Reviews.
@@ -157,7 +159,10 @@ try
     app.UseSerilogRequestLogging();
     app.UseCors();
 
-    app.MapHealthChecks("/health");
+    app.MapHealthChecks("/health", new HealthCheckOptions
+    {
+        Predicate = check => check.Name != "masstransit-bus"
+    });
     app.MapGet("/", () => Results.Ok(new
     {
         service      = serviceName,
