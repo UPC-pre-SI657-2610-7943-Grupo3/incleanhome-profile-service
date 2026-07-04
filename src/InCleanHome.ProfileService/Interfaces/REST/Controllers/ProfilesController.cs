@@ -23,6 +23,7 @@ public class ProfilesController(
     IWorkerProfileCommandService workerCommandService,
     IWorkerProfileQueryService workerQueryService) : ControllerBase
 {
+    // ── Creation (called by IAM Service after Auth0 complete-registration) ──
 
     [HttpPost("clients")]
     [SwaggerOperation("Create Client Profile",
@@ -74,6 +75,7 @@ public class ProfilesController(
         catch (Exception e) { return BadRequest(new { error = e.Message }); }
     }
 
+    // ── Current user's profile (/me) ────────────────────────────────────────
 
     [HttpGet("me")]
     [SwaggerOperation("Get My Profile",
@@ -168,6 +170,7 @@ public class ProfilesController(
         return BadRequest(new { error = "Profiles are not managed for this role" });
     }
 
+    // ── Public profile lookups ───────────────────────────────────────────────
 
     [HttpGet("clients/{userId:int}")]
     [SwaggerOperation("Get Client Profile By UserId",

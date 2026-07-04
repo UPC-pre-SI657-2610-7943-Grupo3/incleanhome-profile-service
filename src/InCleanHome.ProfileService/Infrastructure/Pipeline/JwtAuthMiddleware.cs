@@ -25,10 +25,14 @@ public class JwtAuthMiddleware(RequestDelegate next, IConfiguration configuratio
     public async Task InvokeAsync(HttpContext context)
     {
         // Skip JWT for well-known public paths (health checks, swagger, root).
+        // Also skip internal service-to-service endpoints (/api/v1/internal/*).
+        // Those endpoints are not exposed via the API gateway and validate
+        // their own X-Internal-Token header.
         var path = context.Request.Path.Value ?? string.Empty;
         if (path == "/" ||
             path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
-            path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase))
+            path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWith("/api/v1/internal", StringComparison.OrdinalIgnoreCase))
         {
             await next(context);
             return;

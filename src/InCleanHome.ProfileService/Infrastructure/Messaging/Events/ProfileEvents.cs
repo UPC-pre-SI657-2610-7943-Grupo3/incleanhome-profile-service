@@ -1,6 +1,10 @@
+using MassTransit;
+
 namespace InCleanHome.ProfileService.Infrastructure.Messaging.Events;
 
+// ─── Published by Profile Service ───────────────────────────────────────
 
+[MessageUrn("urn:incleanhome:event:WorkerProfileUpdatedEvent")]
 public record WorkerProfileUpdatedEvent
 {
     public int UserId { get; init; }
@@ -10,6 +14,7 @@ public record WorkerProfileUpdatedEvent
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
+[MessageUrn("urn:incleanhome:event:ClientProfileUpdatedEvent")]
 public record ClientProfileUpdatedEvent
 {
     public int UserId { get; init; }
@@ -17,8 +22,10 @@ public record ClientProfileUpdatedEvent
     public DateTimeOffset OccurredAt { get; init; } = DateTimeOffset.UtcNow;
 }
 
+// ─── Consumed by Profile Service (duplicated from publishers) ────────────
 
 /// <summary>Published by Reviews Service when a customer rates a service.</summary>
+[MessageUrn("urn:incleanhome:event:ReviewSubmittedEvent")]
 public record ReviewSubmittedEvent
 {
     public int ReviewId { get; init; }
@@ -30,6 +37,7 @@ public record ReviewSubmittedEvent
 }
 
 /// <summary>Published by IAM Service when a user is deleted.</summary>
+[MessageUrn("urn:incleanhome:event:UserDeletedEvent")]
 public record UserDeletedEvent
 {
     public int UserId { get; init; }

@@ -9,6 +9,7 @@ public class ProfileDbContext(DbContextOptions<ProfileDbContext> options) : DbCo
 {
     public DbSet<ClientProfile> ClientProfiles => Set<ClientProfile>();
     public DbSet<WorkerProfile> WorkerProfiles => Set<WorkerProfile>();
+    public DbSet<ProcessedReviewEvent> ProcessedReviewEvents => Set<ProcessedReviewEvent>();
 
     protected override void OnConfiguring(DbContextOptionsBuilder builder)
     {
@@ -46,6 +47,12 @@ public class ProfileDbContext(DbContextOptions<ProfileDbContext> options) : DbCo
 
         builder.Entity<WorkerProfile>().Property(w => w.ServiceTypes).HasColumnType("text[]");
         builder.Entity<WorkerProfile>().Property(w => w.Zones).HasColumnType("text[]");
+
+        // Idempotency table for review-applied tracking. Both the HTTP
+        // internal endpoint and the RabbitMQ consumer write here so we don't
+        // double-count the same review.
+        builder.Entity<ProcessedReviewEvent>().HasKey(p => p.ReviewId);
+        builder.Entity<ProcessedReviewEvent>().Property(p => p.ProcessedAt);
 
         builder.UseSnakeCaseNamingConvention();
     }
